@@ -1,0 +1,19 @@
+{
+  "name": "Expense App",
+  "short_name": "Expenses",
+  "description": "Personal Expense Tracker in English, Hindi and Marathi",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#6c63ff",
+  "theme_color": "#6c63ff",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

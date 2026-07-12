@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="theme-color" content="#6c63ff"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Expense App</title>
+<link rel="manifest" href="manifest.json"/>
+<style>
+:root{
+  --bg:#f0f2ff;--surface:#fff;--surface2:#f7f8ff;
+  --primary:#6c63ff;--primary2:#5a52d5;
+  --green:#06d6a0;--red:#ef4444;--amber:#f4a261;--blue:#38bdf8;
+  --text:#1a1830;--text2:#6b6990;--border:#e2e4f0;
+  --shadow:0 4px 18px rgba(108,99,255,.12);
+  --shadowsm:0 2px 8px rgba(0,0,0,.06);
+  --radius:16px;--radiussm:10px;
+}
+.dark{
+  --bg:#0d0e1c;--surface:#181929;--surface2:#1f2138;
+  --text:#e8e8ff;--text2:#8888bb;--border:#2a2b45;
+  --shadow:0 4px 18px rgba(0,0,0,.4);--shadowsm:0 2px 8px rgba(0,0,0,.3);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;max-width:480px;margin:0 auto;
+  overflow-x:hidden;transition:background .3s,color .3s;
+}
+.page{display:none;min-height:100vh;flex-direction:column}
+.page.active{display:flex;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+
+/* TOP BAR */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 16px;background:var(--surface);
+  box-shadow:var(--shadowsm);position:sticky;top:0;z-index:50;
+}
+.dark-btn{
+  background:var(--bg);border:2px solid var(--border);
+  border-radius:22px;padding:7px 14px;cursor:pointer;
+  font-size:17px;color:var(--text);font-weight:600;
+  display:flex;align-items:center;gap:5px;
+}
+.dark-btn span{font-size:13px}
+.lang-sel{
+  background:var(--bg);border:2px solid var(--primary);
+  border-radius:22px;padding:7px 12px;font-size:13px;
+  font-weight:700;color:var(--primary);outline:none;cursor:pointer;
+}
+
+/* PAGE HEADER */
+.page-hdr{
+  background:linear-gradient(135deg,#6c63ff,#c471ed);
+  color:#fff;padding:18px 16px 16px;text-align:center;
+}
+.page-hdr h2{font-size:21px;font-weight:800;}
+
+/* VERSION BADGE — visible proof new file is loaded */
+.ver-badge{
+  display:inline-block;background:rgba(255,255,255,0.25);
+  border:1px solid rgba(255,255,255,0.5);
+  border-radius:20px;padding:3px 12px;font-size:11px;
+  font-weight:700;margin-top:6px;letter-spacing:.5px;
+}
+
+/* MAIN PAGE */
+.welcome-wrap{padding:36px 24px 16px;text-align:center;}
+.welcome-txt{
+  font-size:26px;font-weight:900;line-height:1.28;
+  background:linear-gradient(135deg,#6c63ff 0%,#c471ed 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.menu-wrap{padding:12px 20px;display:flex;flex-direction:column;gap:14px;flex:1}
+.menu-btn{
+  border:none;border-radius:var(--radius);
+  padding:22px 20px;font-size:19px;font-weight:700;
+  cursor:pointer;text-align:center;
+  transition:transform .15s;color:#fff;
+  position:relative;overflow:hidden;
+}
+.menu-btn:active{transform:scale(.97)}
+.menu-btn.b1{background:linear-gradient(135deg,#6c63ff,#9b5de5);box-shadow:0 6px 22px rgba(108,99,255,.42)}
+.menu-btn.b2{background:linear-gradient(135deg,#06b6d4,#06d6a0);box-shadow:0 6px 22px rgba(6,182,212,.38)}
+.menu-btn.b3{background:linear-gradient(135deg,#f4a261,#f7971e);box-shadow:0 6px 22px rgba(244,162,97,.38)}
+.tagline{text-align:center;padding:18px 20px 24px;font-size:13.5px;color:var(--text2);font-style:italic}
+
+/* TREND PAGE */
+.chart-card{
+  background:var(--surface);margin:14px 14px 0;
+  border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);
+}
+#trendCanvas{width:100%;display:block;border-radius:8px}
+.chart-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.period-row{
+  display:flex;gap:7px;padding:12px 14px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.period-row::-webkit-scrollbar{display:none}
+.period-tab{
+  background:var(--surface);border:2px solid var(--primary);
+  border-radius:22px;padding:7px 13px;font-size:12.5px;
+  font-weight:700;color:var(--primary);cursor:pointer;
+  white-space:nowrap;transition:all .18s;
+}
+.period-tab.sel{background:var(--primary);color:#fff}
+
+/* SEARCH CARD */
+.search-card{
+  margin:0 14px 14px;background:var(--surface);
+  border-radius:var(--radius);padding:14px;box-shadow:var(--shadowsm);
+}
+.search-toprow{
+  display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:8px;
+}
+.search-lbl{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+.item-count{
+  font-size:11px;font-weight:700;padding:3px 10px;
+  border-radius:12px;background:var(--bg);color:var(--primary);border:1px solid var(--primary);
+}
+.search-inp{
+  width:100%;border:2px solid var(--border);border-radius:var(--radiussm);
+  padding:12px 14px;font-size:15px;background:var(--bg);
+  color:var(--text);outline:none;transition:border-color .2s;
+}
+.search-inp:focus{border-color:var(--primary)}
+.search-msg{font-size:13px;margin-top:8px;text-align:center;min-height:20px;font-weight:600;line-height:1.4}
+.no-data-tip{
+  background:rgba(108,99,255,.08);border:1px dashed var(--primary);
+  border-radius:10px;padding:14px;text-align:center;
+  font-size:13px;color:var(--primary);line-height:1.6;margin-top:8px;
+}
+
+/* MANUAL PAGE */
+.form-wrap{padding:14px;display:flex;flex-direction:column;gap:11px}
+.fgroup{background:var(--surface);border-radius:12px;padding:13px 15px;box-shadow:var(--shadowsm)}
+.flabel{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.finput{
+  width:100%;border:none;border-bottom:2px solid var(--border);
+  padding:7px 0;font-size:16px;background:transparent;
+  color:var(--text);outline:none;transition:border-color .18s;
+}
+.finput:focus{border-bottom-color:var(--primary)}
+.finput.calc{color:var(--primary);font-weight:700}
+.sno-show{font-size:26px;font-weight:900;color:var(--primary)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.save-btn{
+  margin:4px 14px 10px;background:linear-gradient(135deg,#06b6d4,#06d6a0);
+  color:#fff;border:none;border-radius:var(--radius);
+  padding:18px;font-size:17px;font-weight:800;
+  cursor:pointer;box-shadow:0 6px 22px rgba(6,182,212,.38);
+  transition:transform .15s;
+}
+.save-btn:active{transform:scale(.97)}
+.add-btn{
+  margin:0 14px 10px;background:linear-gradient(135deg,#6c63ff,#9b5de5);
+  color:#fff;border:none;border-radius:var(--radius);
+  padding:18px;font-size:17px;font-weight:800;
+  cursor:pointer;display:none;transition:transform .15s;
+}
+.add-btn:active{transform:scale(.97)}
+
+/* TOTAL PAGE */
+.total-wrap{padding:14px;display:flex;flex-direction:column;gap:13px}
+.card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.limit-val{font-size:34px;font-weight:900;color:var(--primary)}
+.limit-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.action-row{display:flex;gap:9px;margin-top:12px}
+.act-btn{
+  flex:1;padding:11px;border:2px solid var(--primary);
+  border-radius:10px;font-size:13px;font-weight:700;
+  cursor:pointer;background:var(--surface);color:var(--primary);
+}
+.act-btn.filled{background:var(--primary);color:#fff}
+.limit-edit{display:none;margin-top:12px}
+.limit-edit.show{display:block}
+.limit-inp{
+  width:100%;border:2px solid var(--border);border-radius:10px;
+  padding:12px 15px;font-size:20px;font-weight:700;
+  background:var(--bg);color:var(--text);outline:none;
+}
+.limit-inp:focus{border-color:var(--primary)}
+.alarm-row{display:flex;gap:10px}
+.alarm-btn{
+  flex:1;padding:13px;border:2px solid var(--border);
+  border-radius:12px;font-size:15px;font-weight:700;
+  cursor:pointer;background:var(--surface2);color:var(--text2);text-align:center;
+}
+.alarm-btn.on{background:linear-gradient(135deg,#06d6a0,#0ab89a);border-color:#06d6a0;color:#fff}
+.alarm-btn.off{background:linear-gradient(135deg,#ef4444,#b91c1c);border-color:#ef4444;color:#fff}
+.exp-display{text-align:center;padding:8px 0}
+.exp-amount{font-size:46px;font-weight:900;line-height:1;transition:color .4s}
+.exp-amount.safe{color:var(--green)}
+.exp-amount.danger{color:var(--red)}
+.exp-amount.neutral{color:var(--primary)}
+.exp-badge{
+  display:inline-block;margin-top:10px;padding:5px 18px;
+  border-radius:22px;font-size:13px;font-weight:700;
+}
+.exp-badge.safe{background:rgba(6,214,160,.14);color:var(--green)}
+.exp-badge.danger{background:rgba(239,68,68,.14);color:var(--red);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* BACK BUTTON */
+.back-btn{
+  margin:6px 14px 20px;background:var(--surface);
+  color:var(--primary);border:2px solid var(--primary);
+  border-radius:var(--radius);padding:15px;font-size:15px;
+  font-weight:700;cursor:pointer;text-align:center;
+}
+.back-btn:active{background:var(--primary);color:#fff}
+
+/* MODAL */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:900;justify-content:center;align-items:center;padding:20px;
+}
+.modal-bg.show{display:flex}
+.modal{
+  background:var(--surface);border-radius:22px;
+  padding:28px 24px;max-width:340px;width:100%;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+.modal-icon{font-size:40px;margin-bottom:10px}
+.modal h3{font-size:20px;font-weight:800;margin-bottom:6px}
+.modal p{color:var(--text2);font-size:14px;margin-bottom:22px;line-height:1.5}
+.modal-btns{display:flex;gap:11px}
+.mbtn{flex:1;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+.mbtn.yes{background:linear-gradient(135deg,#6c63ff,#9b5de5);color:#fff}
+.mbtn.no{background:var(--bg);color:var(--text);border:2px solid var(--border)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1a1a2e;color:#fff;padding:11px 22px;
+  border-radius:30px;font-size:14px;font-weight:600;
+  z-index:9999;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;
+}
+.dark .toast{background:#e8e8ff;color:#1a1830}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- MAIN PAGE -->
+<div id="page-main" class="page active">
+  <div class="topbar">
+    <button class="dark-btn" id="darkBtn" onclick="toggleDark()">
+      <span id="darkIcon">🌙</span><span id="darkTxt">Dark</span>
+    </button>
+    <select class="lang-sel" id="langSel" onchange="setLang(this.value)">
+      <option value="en">🇬🇧 English</option>
+      <option value="hi">🇮🇳 हिंदी</option>
+      <option value="mr">🇮🇳 मराठी</option>
+    </select>
+  </div>
+  <div class="welcome-wrap">
+    <h1 class="welcome-txt" id="wTxt"></h1>
+  </div>
+  <div class="menu-wrap">
+    <button class="menu-btn b1" id="mBtn1" onclick="goPage('trend')"></button>
+    <button class="menu-btn b2" id="mBtn2" onclick="goPage('manual')"></button>
+    <button class="menu-btn b3" id="mBtn3" onclick="goPage('total')"></button>
+  </div>
+  <div class="tagline" id="mTagline"></div>
+</div>
+
+<!-- TREND PAGE -->
+<div id="page-trend" class="page">
+  <div class="page-hdr">
+    <h2 id="trendHdr"></h2>
+    <!-- VERSION BADGE: If you can see this green badge, the new fixed version is running -->
+    <div class="ver-badge">✓ Search Fixed — v4.0</div>
+  </div>
+  <div class="scroll">
+    <div class="chart-card">
+      <canvas id="trendCanvas" height="260"></canvas>
+      <div class="chart-legend" id="chartLegend"></div>
+    </div>
+    <div class="period-row" id="periodRow"></div>
+    <div class="search-card">
+      <div class="search-toprow">
+        <div class="search-lbl" id="searchLbl"></div>
+        <div class="item-count" id="itemCount"></div>
+      </div>
+      <div id="searchArea"></div>
+    </div>
+  </div>
+  <button class="back-btn" id="trendBack" onclick="goPage('main')"></button>
+</div>
+
+<!-- MANUAL PAGE -->
+<div id="page-manual" class="page">
+  <div class="page-hdr"><h2 id="manualHdr"></h2></div>
+  <div class="scroll">
+    <div class="form-wrap">
+      <div class="fgroup">
+        <div class="flabel" id="lSno"></div>
+        <div class="sno-show" id="snoVal">001</div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel" id="lPart"></div>
+        <input class="finput" id="iPart" type="text" autocomplete="off"/>
+      </div>
+      <div class="frow">
+        <div class="fgroup">
+          <div class="flabel" id="lQty"></div>
+          <input class="finput" id="iQty" type="number" min="0" step="0.01" oninput="calcVal()"/>
+        </div>
+        <div class="fgroup">
+          <div class="flabel" id="lRate"></div>
+          <input class="finput" id="iRate" type="number" min="0" step="0.01" oninput="calcVal()"/>
+        </div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel" id="lVal"></div>
+        <input class="finput calc" id="iVal" type="number" readonly/>
+      </div>
+      <div class="fgroup">
+        <div class="flabel" id="lStore"></div>
+        <input class="finput" id="iStore" type="text" autocomplete="off"/>
+      </div>
+      <div class="fgroup">
+        <div class="flabel" id="lDate"></div>
+        <input class="finput" id="iDate" type="date"/>
+      </div>
+    </div>
+  </div>
+  <button class="save-btn" id="saveBtn" onclick="initSave()"></button>
+  <button class="add-btn" id="addBtn" onclick="resetManual()"></button>
+  <button class="back-btn" id="manualBack" onclick="goPage('main')"></button>
+</div>
+
+<!-- TOTAL PAGE -->
+<div id="page-total" class="page">
+  <div class="page-hdr"><h2 id="totalHdr"></h2></div>
+  <div class="scroll">
+    <div class="total-wrap">
+      <div class="card">
+        <div class="card-title" id="lLimit"></div>
+        <div class="limit-val" id="limitVal">Rs. 0</div>
+        <div class="limit-sub" id="limitSub"></div>
+        <div class="action-row">
+          <button class="act-btn" id="setLimBtn" onclick="showLimitEdit()"></button>
+          <button class="act-btn" id="useSavBtn" onclick="useSaved()"></button>
+        </div>
+        <div class="limit-edit" id="limitEditDiv">
+          <input class="limit-inp" id="limitInp" type="number" min="0" placeholder="0"/>
+          <div class="action-row" style="margin-top:9px">
+            <button class="act-btn filled" onclick="applyLimit()">Save</button>
+            <button class="act-btn" onclick="hideLimitEdit()">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="lAlarm"></div>
+        <div class="alarm-row">
+          <button class="alarm-btn" id="alarmOnBtn" onclick="setAlarm(true)"></button>
+          <button class="alarm-btn" id="alarmOffBtn" onclick="setAlarm(false)"></button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="lCurr"></div>
+        <div class="exp-display">
+          <div class="exp-amount neutral" id="expAmt">Rs. 0</div>
+          <div class="exp-badge" id="expBadge"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="back-btn" id="totalBack" onclick="goPage('main')"></button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-icon">⚠️</div>
+    <h3 id="modalTitle"></h3>
+    <p id="modalBody"></p>
+    <div class="modal-btns">
+      <button class="mbtn no" id="modalNo" onclick="closeModal()"></button>
+      <button class="mbtn yes" id="modalYes" onclick="doSave()"></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==============================================
+   EXPENSE APP — Version 4.0
+   Search Fix: Partial match, patient typing,
+   input never cleared, item count shown.
+   ============================================== */
+
+/* TRANSLATIONS */
+var TR = {
+  en:{
+    welcome:"Welcome to Expense App",
+    b1:"📈  Check Trend",b2:"✏️  Manual Mode",b3:"💰  Total Expense / Month",
+    tagline:"Keep your record up to date always",
+    back:"Back to Main Menu",
+    trendHdr:"Check Trend",
+    monthly:"Monthly",quarterly:"Quarterly",halfYearly:"Half Yearly",
+    yearly:"Yearly",fullHistory:"Full History",
+    searchLbl:"Search Item Name",
+    itemsAvail:"items saved",
+    searchPh:"Type item name here and wait...",
+    noItem:"No such item in the list",
+    noDataTip:"You have no expense items saved yet.\nPlease go to Manual Mode and add some items first.\nThen come back here to search.",
+    searching:"Searching...",
+    manualHdr:"Manual Mode",
+    sno:"SR. NO.",part:"PARTICULARS",qty:"QTY / KG",
+    rate:"RATE (Rs.)",val:"VALUE Rs. (Auto-calculated)",
+    store:"STORE NAME",date:"DATE OF PURCHASE",
+    saveBtnTxt:"SAVE ENTRY",addBtnTxt:"Add Another Item",
+    totalHdr:"Total Expense / Month",
+    lLimit:"MONTHLY LIMIT",limitSub:"Set a limit to track your spending",
+    setLim:"Set New Amount",useSav:"Use Saved Value",
+    lAlarm:"ALERT / ALARM",
+    alarmOn:"🔔  Alarm ON",alarmOff:"🔕  Alarm OFF",
+    lCurr:"CURRENT MONTH EXPENSE",
+    mTitle:"Are you sure?",mBody:"Do you want to save this expense entry?",
+    mYes:"Yes, Save",mNo:"Cancel",
+    saved:"Entry saved successfully!",
+    exceeded:"LIMIT EXCEEDED!",within:"Within Limit"
+  },
+  hi:{
+    welcome:"व्यय ऐप में आपका स्वागत है",
+    b1:"📈  ट्रेंड देखें",b2:"✏️  मैनुअल मोड",b3:"💰  कुल व्यय / माह",
+    tagline:"अपना रिकॉर्ड हमेशा अपडेट रखें",
+    back:"मुख्य मेनू पर वापस",
+    trendHdr:"ट्रेंड देखें",
+    monthly:"मासिक",quarterly:"त्रैमासिक",halfYearly:"अर्धवार्षिक",
+    yearly:"वार्षिक",fullHistory:"पूर्ण इतिहास",
+    searchLbl:"आइटम नाम खोजें",
+    itemsAvail:"आइटम सहेजे गए",
+    searchPh:"यहाँ आइटम नाम टाइप करें...",
+    noItem:"सूची में ऐसा कोई आइटम नहीं",
+    noDataTip:"अभी तक कोई व्यय दर्ज नहीं है।\nपहले मैनुअल मोड में आइटम जोड़ें।",
+    searching:"खोज रहे हैं...",
+    manualHdr:"मैनुअल मोड",
+    sno:"क्रम सं.",part:"विवरण",qty:"मात्रा / किग्रा",
+    rate:"दर (Rs.)",val:"मूल्य Rs. (स्वतः गणना)",
+    store:"दुकान का नाम",date:"खरीद की तारीख",
+    saveBtnTxt:"सहेजें",addBtnTxt:"अन्य आइटम जोड़ें",
+    totalHdr:"कुल व्यय / माह",
+    lLimit:"मासिक सीमा",limitSub:"खर्च की सीमा निर्धारित करें",
+    setLim:"नई राशि",useSav:"सहेजी राशि",
+    lAlarm:"अलर्ट / अलार्म",alarmOn:"🔔  अलार्म चालू",alarmOff:"🔕  अलार्म बंद",
+    lCurr:"वर्तमान माह व्यय",
+    mTitle:"क्या आप निश्चित हैं?",mBody:"क्या इस व्यय को सहेजना है?",
+    mYes:"हाँ, सहेजें",mNo:"रद्द करें",
+    saved:"प्रविष्टि सफलतापूर्वक सहेजी!",
+    exceeded:"सीमा पार!",within:"सीमा के भीतर"
+  },
+  mr:{
+    welcome:"खर्च अॅपमध्ये आपले स्वागत आहे",
+    b1:"📈  ट्रेंड पहा",b2:"✏️  मॅन्युअल मोड",b3:"💰  एकूण खर्च / महिना",
+    tagline:"आपली नोंद नेहमी अद्ययावत ठेवा",
+    back:"मुख्य मेनूवर परत",
+    trendHdr:"ट्रेंड पहा",
+    monthly:"मासिक",quarterly:"त्रैमासिक",halfYearly:"सहा महिने",
+    yearly:"वार्षिक",fullHistory:"संपूर्ण इतिहास",
+    searchLbl:"आयटमचे नाव शोधा",
+    itemsAvail:"आयटम जतन केले",
+    searchPh:"येथे आयटमचे नाव टाइप करा...",
+    noItem:"यादीत असा कोणताही आयटम नाही",
+    noDataTip:"अद्याप कोणताही खर्च नोंदवलेला नाही।\nआधी मॅन्युअल मोडमध्ये आयटम जोडा।",
+    searching:"शोधत आहे...",
+    manualHdr:"मॅन्युअल मोड",
+    sno:"अ.क्र.",part:"तपशील",qty:"प्रमाण / किग्रा",
+    rate:"दर (Rs.)",val:"मूल्य Rs. (स्वयं गणना)",
+    store:"दुकानाचे नाव",date:"खरेदीची तारीख",
+    saveBtnTxt:"जतन करा",addBtnTxt:"दुसरा आयटम जोडा",
+    totalHdr:"एकूण खर्च / महिना",
+    lLimit:"मासिक मर्यादा",limitSub:"खर्चाची मर्यादा सेट करा",
+    setLim:"नवीन रक्कम",useSav:"जतन केलेले मूल्य",
+    lAlarm:"अलर्ट / अलार्म",alarmOn:"🔔  अलार्म चालू",alarmOff:"🔕  अलार्म बंद",
+    lCurr:"चालू महिन्याचा खर्च",
+    mTitle:"आपण खात्री आहात?",mBody:"हा खर्च जतन करायचा आहे का?",
+    mYes:"होय, जतन करा",mNo:"रद्द करा",
+    saved:"नोंद यशस्वीरित्या जतन केली!",
+    exceeded:"मर्यादा ओलांडली!",within:"मर्यादेत आहे"
+  }
+};
+
+/* STATE */
+var S = {lang:'en', dark:false, period:'monthly', alarm:false, limit:0};
+var expenses = [];
+var searchTimer = null;
+var trendItemFilter = null;
+var COLORS = ['#6c63ff','#06d6a0','#f4a261','#ef4444','#38bdf8','#c471ed','#ffd60a','#52b788'];
+
+/* STORAGE */
+function loadData() {
+  try {
+    var s = localStorage.getItem('ea_state');
+    if (s) Object.assign(S, JSON.parse(s));
+    var e = localStorage.getItem('ea_expenses');
+    if (e) expenses = JSON.parse(e);
+  } catch(err) { expenses = []; }
+}
+function saveData() {
+  try {
+    localStorage.setItem('ea_state', JSON.stringify(S));
+    localStorage.setItem('ea_expenses', JSON.stringify(expenses));
+  } catch(err) {}
+}
+
+/* TRANSLATE */
+function t(k) {
+  var lang = TR[S.lang] || TR.en;
+  return lang[k] || TR.en[k] || k;
+}
+
+/* THEME */
+function toggleDark() { S.dark = !S.dark; applyTheme(); saveData(); }
+function applyTheme() {
+  document.body.classList.toggle('dark', S.dark);
+  document.getElementById('darkIcon').textContent = S.dark ? '☀️' : '🌙';
+  document.getElementById('darkTxt').textContent  = S.dark ? 'Light' : 'Dark';
+}
+
+/* LANGUAGE */
+function setLang(l) { S.lang = l; renderUI(); saveData(); }
+
+function renderUI() {
+  document.getElementById('langSel').value = S.lang;
+  document.getElementById('wTxt').textContent    = t('welcome');
+  document.getElementById('mBtn1').textContent   = t('b1');
+  document.getElementById('mBtn2').textContent   = t('b2');
+  document.getElementById('mBtn3').textContent   = t('b3');
+  document.getElementById('mTagline').textContent= t('tagline');
+  document.getElementById('trendHdr').textContent= t('trendHdr');
+  document.getElementById('trendBack').textContent  = t('back');
+  document.getElementById('searchLbl').textContent  = t('searchLbl');
+  document.getElementById('manualHdr').textContent  = t('manualHdr');
+  document.getElementById('lSno').textContent   = t('sno');
+  document.getElementById('lPart').textContent  = t('part');
+  document.getElementById('lQty').textContent   = t('qty');
+  document.getElementById('lRate').textContent  = t('rate');
+  document.getElementById('lVal').textContent   = t('val');
+  document.getElementById('lStore').textContent = t('store');
+  document.getElementById('lDate').textContent  = t('date');
+  document.getElementById('saveBtn').textContent = t('saveBtnTxt');
+  document.getElementById('addBtn').textContent  = t('addBtnTxt');
+  document.getElementById('manualBack').textContent = t('back');
+  document.getElementById('totalHdr').textContent   = t('totalHdr');
+  document.getElementById('lLimit').textContent     = t('lLimit');
+  document.getElementById('limitSub').textContent   = t('limitSub');
+  document.getElementById('setLimBtn').textContent  = t('setLim');
+  document.getElementById('useSavBtn').textContent  = t('useSav');
+  document.getElementById('lAlarm').textContent     = t('lAlarm');
+  document.getElementById('alarmOnBtn').textContent = t('alarmOn');
+  document.getElementById('alarmOffBtn').textContent= t('alarmOff');
+  document.getElementById('lCurr').textContent      = t('lCurr');
+  document.getElementById('modalTitle').textContent  = t('mTitle');
+  document.getElementById('modalBody').textContent   = t('mBody');
+  document.getElementById('modalYes').textContent    = t('mYes');
+  document.getElementById('modalNo').textContent     = t('mNo');
+  document.getElementById('totalBack').textContent   = t('back');
+  renderPeriodTabs();
+}
+
+/* NAVIGATION */
+function goPage(pg) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-'+pg).classList.add('active');
+  window.scrollTo(0,0);
+  if (pg==='trend')  initTrend();
+  if (pg==='manual') resetManual();
+  if (pg==='total')  loadTotal();
+}
+
+/* ================================================
+   CHART ENGINE
+   ================================================ */
+function drawChart(labels, datasets) {
+  var canvas = document.getElementById('trendCanvas');
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var W = canvas.parentElement.clientWidth - 28;
+  var H = 260;
+  canvas.style.width  = W+'px';
+  canvas.style.height = H+'px';
+  canvas.width  = W*dpr;
+  canvas.height = H*dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,W,H);
+
+  var isDark = document.body.classList.contains('dark');
+  var tc  = isDark ? 'rgba(200,200,255,0.7)' : 'rgba(60,60,100,0.7)';
+  var gc  = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
+  var axc = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
+  var pad = {t:24,r:16,b:52,l:58};
+  var cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+
+  if (!labels || labels.length===0) {
+    ctx.fillStyle=tc; ctx.textAlign='center'; ctx.font='13px system-ui';
+    ctx.fillText('Add expense items to see trends here.', W/2, H/2);
+    return;
+  }
+
+  var allV=[];
+  datasets.forEach(function(d){ d.data.forEach(function(v){ allV.push(Number(v)); }); });
+  var maxV=Math.max.apply(null,allV.concat([1])), minV=0, range=maxV-minV||1;
+
+  for (var i=0;i<=5;i++) {
+    var y=pad.t+ch*(1-i/5);
+    ctx.beginPath(); ctx.strokeStyle=gc; ctx.lineWidth=1;
+    ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+    ctx.fillStyle=tc; ctx.textAlign='right'; ctx.font='10px system-ui';
+    ctx.fillText(fmtShort(minV+range*(i/5)), pad.l-5, y+4);
+  }
+  var n=labels.length, step=n<=6?1:Math.ceil(n/5);
+  labels.forEach(function(lbl,i){
+    if (i%step===0||i===n-1){
+      var x=pad.l+(n===1?cw/2:i/(n-1)*cw);
+      ctx.fillStyle=tc; ctx.textAlign='center'; ctx.font='10px system-ui';
+      ctx.save(); ctx.translate(x,pad.t+ch+14); ctx.rotate(-Math.PI/7);
+      ctx.fillText(lbl,0,0); ctx.restore();
+    }
+  });
+  ctx.beginPath(); ctx.strokeStyle=axc; ctx.lineWidth=1;
+  ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,pad.t+ch); ctx.lineTo(pad.l+cw,pad.t+ch); ctx.stroke();
+
+  datasets.forEach(function(ds,di){
+    var pts=ds.data.map(function(v,i){
+      return { x:pad.l+(n===1?cw/2:i/(n-1)*cw), y:pad.t+ch*(1-(Number(v)-minV)/range) };
+    });
+    var col=COLORS[di%COLORS.length];
+    ctx.beginPath(); ctx.moveTo(pts[0].x,pad.t+ch);
+    pts.forEach(function(p){ ctx.lineTo(p.x,p.y); });
+    ctx.lineTo(pts[pts.length-1].x,pad.t+ch); ctx.closePath();
+    ctx.fillStyle=col+'28'; ctx.fill();
+    ctx.beginPath(); ctx.strokeStyle=col; ctx.lineWidth=2.5;
+    pts.forEach(function(p,i){
+      if (i===0){ ctx.moveTo(p.x,p.y); }
+      else { var prev=pts[i-1]; var cpx=(prev.x+p.x)/2; ctx.bezierCurveTo(cpx,prev.y,cpx,p.y,p.x,p.y); }
+    });
+    ctx.stroke();
+    pts.forEach(function(p){
+      ctx.beginPath(); ctx.arc(p.x,p.y,4.5,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x,p.y,2.5,0,Math.PI*2);
+      ctx.fillStyle=isDark?'#181929':'#fff'; ctx.fill();
+    });
+  });
+}
+function fmtShort(v){ return v>=100000?(v/100000).toFixed(1)+'L':v>=1000?(v/1000).toFixed(1)+'K':Math.round(v); }
+
+/* ================================================
+   TREND PAGE
+   ================================================ */
+function initTrend() {
+  trendItemFilter = null;
+  renderPeriodTabs();
+  buildTrendChart(null);
+  renderSearchArea();
+}
+
+function renderPeriodTabs() {
+  var periods=[
+    {k:'monthly',l:t('monthly')},{k:'quarterly',l:t('quarterly')},
+    {k:'halfYearly',l:t('halfYearly')},{k:'yearly',l:t('yearly')},
+    {k:'fullHistory',l:t('fullHistory')}
+  ];
+  document.getElementById('periodRow').innerHTML = periods.map(function(p){
+    return '<button class="period-tab'+(S.period===p.k?' sel':'')+
+           '" onclick="selPeriod(\''+p.k+'\')">'+ p.l +'</button>';
+  }).join('');
+}
+function selPeriod(p){ S.period=p; saveData(); renderPeriodTabs(); buildTrendChart(trendItemFilter); }
+
+function getDateRange(){
+  var now=new Date(), s=new Date();
+  if(S.period==='monthly')     s.setMonth(s.getMonth()-1);
+  else if(S.period==='quarterly')  s.setMonth(s.getMonth()-3);
+  else if(S.period==='halfYearly') s.setMonth(s.getMonth()-6);
+  else if(S.period==='yearly')     s.setFullYear(s.getFullYear()-1);
+  else s.setFullYear(2000);
+  return {start:s,end:now};
+}
+function dateKey(dateStr){
+  var d=new Date(dateStr);
+  return S.period==='monthly'
+    ? d.toLocaleDateString('en',{month:'short',day:'numeric'})
+    : d.toLocaleDateString('en',{year:'2-digit',month:'short'});
+}
+
+function buildTrendChart(filterItem){
+  var range=getDateRange();
+  var inRange=expenses.filter(function(e){ var d=new Date(e.date); return d>=range.start&&d<=range.end; });
+  var items=[];
+  if (Array.isArray(filterItem)) { items=filterItem; }
+  else if (filterItem)           { items=[filterItem]; }
+  else {
+    var seen={}, all=[];
+    expenses.forEach(function(e){ if(!seen[e.part]){seen[e.part]=true;all.push(e.part);} });
+    all.sort(function(){ return Math.random()-0.5; });
+    items=all.slice(0,Math.min(5,all.length));
+  }
+  var lblSet={};
+  inRange.forEach(function(e){ lblSet[dateKey(e.date)]=true; });
+  var labels=Object.keys(lblSet).sort(function(a,b){
+    var fa=expenses.find(function(e){ return dateKey(e.date)===a; });
+    var fb=expenses.find(function(e){ return dateKey(e.date)===b; });
+    return new Date(fa?fa.date:0)-new Date(fb?fb.date:0);
+  });
+  var datasets=items.map(function(item,i){
+    var grp={};
+    inRange.filter(function(e){ return e.part.toLowerCase()===item.toLowerCase(); })
+      .forEach(function(e){ var k=dateKey(e.date); grp[k]=(grp[k]||0)+(parseFloat(e.val)||0); });
+    return {label:item, data:labels.map(function(l){ return grp[l]||0; })};
+  });
+  drawChart(labels,datasets);
+  document.getElementById('chartLegend').innerHTML=items.map(function(item,i){
+    return '<div class="leg-item"><div class="leg-dot" style="background:'+COLORS[i%COLORS.length]+'"></div><span>'+item+'</span></div>';
+  }).join('');
+}
+
+/* ================================================
+   SEARCH AREA — rendered based on whether data exists
+   ================================================ */
+function renderSearchArea() {
+  var totalItems = getUniqueItemNames().length;
+  var countEl = document.getElementById('itemCount');
+  countEl.textContent = totalItems + ' ' + t('itemsAvail');
+  countEl.style.color = totalItems > 0 ? 'var(--primary)' : 'var(--red)';
+
+  var area = document.getElementById('searchArea');
+
+  if (totalItems === 0) {
+    /* No data: show helpful tip instead of search box */
+    area.innerHTML =
+      '<div class="no-data-tip">📋 ' + t('noDataTip').replace(/\n/g,'<br>') + '</div>';
+    return;
+  }
+
+  /* Has data: show search input */
+  area.innerHTML =
+    '<input class="search-inp" id="searchInp" type="text" autocomplete="off"'+
+    ' autocorrect="off" spellcheck="false" placeholder="'+t('searchPh')+'"/>'+
+    '<div class="search-msg" id="searchMsg"></div>';
+
+  attachSearchEvents();
+}
+
+function getUniqueItemNames() {
+  var seen={}, names=[];
+  expenses.forEach(function(e){ if(!seen[e.part.toLowerCase()]){seen[e.part.toLowerCase()]=true;names.push(e.part);} });
+  return names;
+}
+
+/* ================================================
+   SEARCH — FIXED (patient typing, partial match,
+   input NEVER cleared automatically)
+   ================================================ */
+function attachSearchEvents() {
+  var inp = document.getElementById('searchInp');
+  if (!inp) return;
+
+  inp.addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    var typed = inp.value.trim();
+    setSearchMsg('', '');
+
+    /* Empty box: reset to all items overview */
+    if (!typed) {
+      trendItemFilter = null;
+      buildTrendChart(null);
+      return;
+    }
+
+    /* --- Instant partial match while user is typing --- */
+    /* Finds any item whose name CONTAINS what is typed  */
+    var matches = getPartialMatches(typed);
+
+    if (matches.length > 0) {
+      /* Found matches — show on chart straight away */
+      trendItemFilter = matches;
+      buildTrendChart(matches.slice(0,5));
+      if (matches.length === 1) {
+        setSearchMsg('✓ Showing: ' + matches[0], 'var(--green)');
+      } else {
+        setSearchMsg('✓ ' + matches.length + ' items match. Keep typing to narrow down.', 'var(--green)');
+      }
+    } else {
+      /* No match yet — start a patient timer (2.5 seconds) */
+      /* User has plenty of time to finish typing          */
+      searchTimer = setTimeout(function() {
+        var current = inp.value.trim();
+        if (!current) return;
+        var stillNone = getPartialMatches(current).length === 0;
+        if (stillNone) {
+          setSearchMsg('❌ ' + t('noItem'), 'var(--red)');
+          /* Remove error message after 3s — input box stays open always */
+          setTimeout(function() {
+            var msgEl = document.getElementById('searchMsg');
+            if (msgEl) msgEl.textContent = '';
+          }, 3000);
+        }
+      }, 2500);
+    }
+  });
+
+  /* ENTER key: search immediately without waiting */
+  inp.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    clearTimeout(searchTimer);
+    var typed = inp.value.trim();
+    if (!typed) return;
+    var matches = getPartialMatches(typed);
+    if (matches.length > 0) {
+      trendItemFilter = matches;
+      buildTrendChart(matches.slice(0,5));
+      setSearchMsg('✓ Showing: ' + matches.join(', '), 'var(--green)');
+    } else {
+      setSearchMsg('❌ ' + t('noItem'), 'var(--red)');
+      setTimeout(function(){
+        var msgEl = document.getElementById('searchMsg');
+        if (msgEl) msgEl.textContent='';
+      },3000);
+    }
+  });
+}
+
+function getPartialMatches(typed) {
+  var seen={}, result=[];
+  expenses.forEach(function(e) {
+    if (e.part.toLowerCase().indexOf(typed.toLowerCase()) !== -1) {
+      if (!seen[e.part.toLowerCase()]) {
+        seen[e.part.toLowerCase()] = true;
+        result.push(e.part);
+      }
+    }
+  });
+  return result;
+}
+
+function setSearchMsg(text, color) {
+  var el = document.getElementById('searchMsg');
+  if (el) { el.textContent = text; el.style.color = color; }
+}
+
+/* ================================================
+   MANUAL MODE
+   ================================================ */
+function resetManual() {
+  document.getElementById('snoVal').textContent = String(expenses.length+1).padStart(3,'0');
+  ['iPart','iQty','iRate','iVal','iStore'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('iDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('saveBtn').style.display = 'block';
+  document.getElementById('addBtn').style.display  = 'none';
+}
+function calcVal() {
+  var q=parseFloat(document.getElementById('iQty').value)||0;
+  var r=parseFloat(document.getElementById('iRate').value)||0;
+  var v=q*r;
+  document.getElementById('iVal').value = v>0 ? v.toFixed(2) : '';
+}
+function initSave() {
+  if (!document.getElementById('iPart').value.trim()) { showToast('Please enter item name'); return; }
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal() { document.getElementById('modalBg').classList.remove('show'); }
+function doSave() {
+  closeModal();
+  expenses.push({
+    id:Date.now(), sno:expenses.length+1,
+    part:document.getElementById('iPart').value.trim(),
+    qty:parseFloat(document.getElementById('iQty').value)||0,
+    rate:parseFloat(document.getElementById('iRate').value)||0,
+    val:parseFloat(document.getElementById('iVal').value)||0,
+    store:document.getElementById('iStore').value.trim(),
+    date:document.getElementById('iDate').value||new Date().toISOString().split('T')[0]
+  });
+  saveData();
+  showToast(t('saved'));
+  document.getElementById('saveBtn').style.display = 'none';
+  document.getElementById('addBtn').style.display  = 'block';
+  checkAlarm();
+}
+
+/* ================================================
+   TOTAL PAGE
+   ================================================ */
+function loadTotal() { updateLimitDisplay(); updateAlarmBtns(); updateExpDisplay(); }
+function updateLimitDisplay() { document.getElementById('limitVal').textContent='Rs. '+fmtIN(S.limit||0); }
+function showLimitEdit() {
+  document.getElementById('limitEditDiv').classList.add('show');
+  document.getElementById('limitInp').value = S.limit||'';
+  document.getElementById('limitInp').focus();
+}
+function hideLimitEdit() { document.getElementById('limitEditDiv').classList.remove('show'); }
+function applyLimit() { S.limit=parseFloat(document.getElementById('limitInp').value)||0; saveData(); hideLimitEdit(); updateLimitDisplay(); updateExpDisplay(); }
+function useSaved() { hideLimitEdit(); updateExpDisplay(); }
+function setAlarm(on) { S.alarm=on; saveData(); updateAlarmBtns(); }
+function updateAlarmBtns() {
+  document.getElementById('alarmOnBtn').className  = 'alarm-btn'+(S.alarm?' on':'');
+  document.getElementById('alarmOffBtn').className = 'alarm-btn'+(!S.alarm?' off':'');
+}
+function getCurrMonthTotal() {
+  var now=new Date();
+  return expenses.filter(function(e){ var d=new Date(e.date); return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth(); })
+    .reduce(function(s,e){ return s+(parseFloat(e.val)||0); },0);
+}
+function updateExpDisplay() {
+  var curr=getCurrMonthTotal(), lim=S.limit||0;
+  var el=document.getElementById('expAmt'), badge=document.getElementById('expBadge');
+  el.textContent='Rs. '+fmtIN(curr);
+  if (lim>0) {
+    if (curr>lim){ el.className='exp-amount danger'; badge.textContent=t('exceeded'); badge.className='exp-badge danger'; }
+    else { el.className='exp-amount safe'; badge.textContent=t('within'); badge.className='exp-badge safe'; }
+  } else { el.className='exp-amount neutral'; badge.textContent=''; badge.className='exp-badge'; }
+}
+function checkAlarm() {
+  if (!S.alarm) return;
+  if ((S.limit||0)>0 && getCurrMonthTotal()>S.limit) showToast(t('exceeded'));
+}
+function fmtIN(v){ return Number(v).toLocaleString('en-IN',{maximumFractionDigits:2}); }
+
+/* TOAST */
+var toastTimer;
+function showToast(msg,ms){
+  ms=ms||2400;
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ el.classList.remove('show'); },ms);
+}
+
+/* ================================================
+   INIT
+   ================================================ */
+function init() {
+  loadData();
+  applyTheme();
+  renderUI();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+}
+init();
+</script>
+</body>
+</html>
